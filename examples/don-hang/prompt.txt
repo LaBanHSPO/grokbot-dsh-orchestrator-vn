@@ -1,0 +1,9 @@
+Trong thư mục hiện tại có file don_hang_tho.csv (đơn hàng thô, dữ liệu giả). Hãy viết script Python clean.py để:
+- bỏ dòng trùng ma_don;
+- chuẩn hoá tên khách (bỏ khoảng trắng thừa, viết hoa chữ cái đầu, coi "Cty" và "Công ty" là một);
+- đọc ngày dạng dd/mm/yyyy và yyyy-mm-dd;
+- đọc đơn giá dạng 185000, 185.000, 185k thành số nguyên VND;
+- bỏ dòng thiếu so_luong và đếm lại;
+- chỉ tính doanh thu với trạng thái "Đã giao" (không phân biệt hoa thường).
+Xuất result.csv (khach_hang, thang YYYY-MM, so_don, doanh_thu) và summary.md bằng tiếng Việt: số dòng gốc, số dòng trùng, số dòng bị loại và lý do, tổng doanh thu, top 3 khách, tháng cao nhất.
+Chỉ làm việc trong thư mục này. Không cài thêm gói. Không thêm số liệu không có trong dữ liệu. Chạy script và kiểm tra file đầu ra đã tồn tại.

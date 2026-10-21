@@ -1,0 +1,5 @@
+# Dùng cho việc khó: dsh --profile headless --patch config/patches/pro.patch.yml "..."
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-v4-pro

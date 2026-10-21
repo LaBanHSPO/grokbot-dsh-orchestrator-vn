@@ -1,0 +1,23 @@
+# Đặt file này tại ~/.dsh/cordis.patch.yml (hoặc $DSH_HOME/cordis.patch.yml).
+# Áp dụng cho MỌI profile của dsh (headless, web, tui...).
+# DeepSeek qua OpenCode Go. Key đọc từ biến môi trường OPENCODE_API_KEY lúc gọi;
+# KHÔNG ghi key vào file này.
+- id: llm-deepseek
+  config:
+    baseURL: https://opencode.ai/zen/go/v1
+    apiKeyEnv: OPENCODE_API_KEY
+    thinking: enabled
+    reasoningEffort: high
+    models:
+      - id: deepseek-v4.1-flash
+        name: DeepSeek-V4.1-Flash (OpenCode Go)
+        contextWindow: 1000000
+        systemPromptUpdate: in-history
+        toolUpdate: addition-only
+      - id: deepseek-v4-pro
+        name: DeepSeek-V4-Pro (OpenCode Go)
+        contextWindow: 1000000
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-v4.1-flash

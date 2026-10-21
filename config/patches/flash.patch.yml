@@ -1,0 +1,5 @@
+# Model mặc định, rẻ và nhanh: dsh --profile headless --patch config/patches/flash.patch.yml "..."
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-v4.1-flash
