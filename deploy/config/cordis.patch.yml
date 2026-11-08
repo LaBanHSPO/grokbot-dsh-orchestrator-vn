@@ -1,0 +1,26 @@
+# Home overlay for every dsh profile. Copy to $DSH_HOME/cordis.patch.yml.
+# No API key belongs in this file. The key name is OPENCODE_API_KEY.
+# Live calls to the provider were not run. See deploy/INSTALL.md before using one.
+- id: llm-deepseek
+  config:
+    baseURL: https://opencode.ai/zen/go/v1
+    apiKeyEnv: OPENCODE_API_KEY
+    thinking: enabled
+    reasoningEffort: high
+    models:
+      - id: deepseek-v4.1-flash
+        name: DeepSeek-V4.1-Flash (OpenCode Go)
+        contextWindow: 1000000
+        systemPromptUpdate: in-history
+        toolUpdate: addition-only
+      - id: deepseek-v4-pro
+        name: DeepSeek-V4-Pro (OpenCode Go)
+        contextWindow: 1000000
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-v4.1-flash
+# The model-facing web_search and web_fetch tools stay installed but disabled.
+# They would ask for a separate DEEPSEEK_API_KEY. Do not re-enable them here.
+- id: tool-web
+  disabled: true

@@ -1,0 +1,5 @@
+# Higher-cost model. Use only after the spend is approved.
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-v4-pro

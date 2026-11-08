@@ -1,0 +1,5 @@
+# Cheap, fast model. Pass this patch before the task text.
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-v4.1-flash

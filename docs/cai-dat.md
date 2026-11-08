@@ -1,5 +1,9 @@
 # Cài đặt từng bước trên box của Grok Bot
 
+> **Đừng làm các bước NodeSource và `npm i -g` ở trang này.** `@deepseek-ai/dsh@0.2.2-rc.1` yêu cầu Node `>= 24.9.0`. Nâng Node của cả máy có thể làm hỏng bot khác. Cách cài riêng, không secret, nằm ở [deploy/INSTALL.md](../deploy/INSTALL.md).
+
+
+
 Box của Grok Bot là một máy Linux dùng chung cho các bot của bạn. Bạn có thể **nhờ Grok Bot làm toàn bộ các bước dưới đây** — chỉ cần dán link file này và nói "cài giúp mình".
 
 ## 1. Node.js >= 22.19
