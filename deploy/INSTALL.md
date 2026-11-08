@@ -59,7 +59,15 @@ A later check, still with no model call:
 ~/.local/dsh-orchestrator/bin/verify.sh
 ```
 
-## One scratch job, only after the key and the spend are approved
+## One scratch job, only after isolation passes and the spend is approved
+
+Do not start a live worker until all three are true:
+
+1. `bash deploy/test-isolation.sh` prints `ISOLATION PASS` on this box.
+2. A person has approved the OpenCode Go subscription and the token prices above.
+3. `OPENCODE_API_KEY` is in the environment through the existing secret flow.
+
+Re-run `bash deploy/install-prefix.sh` from this commit before that test. It refreshes the wrappers under the private prefix and does not replace system Node. It leaves an existing `cordis.patch.yml` in place.
 
 ```sh
 mkdir -p "$HOME/scratch" "$HOME/.local/dsh-orchestrator/work/sample"
@@ -68,36 +76,44 @@ printf '%s\n' 'sample notes' > "$HOME/.local/dsh-orchestrator/work/sample/notes.
 "$HOME/.local/dsh-orchestrator/bin/run-dsh.sh" sample "$HOME/scratch/prompt.txt"
 ```
 
-Do not point the job at a git checkout. `--pro` switches to `deepseek-v4-pro` and spends more of the allowance. The wrapper refuses to start when `OPENCODE_API_KEY` is missing, and it never prints the value.
+Do not point the job at a git checkout. `--pro` switches to `deepseek-v4-pro` and spends more of the allowance. The wrapper refuses to start when `OPENCODE_API_KEY` is missing, when bubblewrap is unavailable, or when the job path is a symlink. It never prints the key.
 
 ## Skill
 
 `deploy/skills/dsh-worker/SKILL.md` is the text to review. Save it through the bot's own skill-authoring flow if you want the bot to use it. This repository does not change the bot's skills or settings. Do not save `skills/dsh-worker/SKILL.md`; that copy tells the bot to do work that conflicts with its approval, delegation, and credential rules.
 
-## What the sandbox does
+## Filesystem and network boundary
 
-Tested on this x64 Linux host with the pinned Landlock launcher, bubblewrap not installed:
+`run-dsh.sh` calls `isolate-run.sh`. There is no unsandboxed fallback. The profile is `bwrap --unshare-all --share-net`: user, mount, PID, UTS, IPC, and cgroup namespaces are new, and the network namespace is the host's on purpose.
 
-- A write inside the workspace was allowed.
-- A write to another home directory outside the workspace was denied.
-- A write under `/tmp` was allowed. `/tmp` is not a private job boundary.
-- A read of a mode `0600` file outside the workspace, owned by the same user, was allowed.
-- `curl https://example.com` from inside the sandbox returned HTTP 200. The file sandbox does not block the network.
-- `read-only` denied a write in the workspace.
-- On this host, `danger-full-access` still went through Landlock and did not gain those writes. Do not turn it on anyway. The documented meaning of that mode is to remove the fence.
+The provider call cannot work with an empty network namespace. A test of that empty namespace fails to resolve `example.com`. The worker profile does not use it. Child tools can also open network connections. Do not treat the network as closed.
 
-Run the worker as a user that cannot read other bots' homes or secret files. The wrapper cannot add that separation.
+What the jail can see:
+
+- the one job directory, read-write, mounted at `/work`
+- the private Node and dsh install, read-only
+- this prefix's dsh home (config and session logs), read-write
+- read-only system directories needed to start Node: `/usr`, `/bin`, `/lib`, `/lib64`, and `/sbin` when they exist
+- a few `/etc` files: resolver, CA certificates, hosts, nsswitch, passwd, and group
+
+What it cannot see:
+
+- the real home directory, other bots' files, `/root`, `/opt`, `/var`, and the host `/tmp`
+- `/etc/shadow`
+- environment variables other than the fixed jail set. `OPENCODE_API_KEY` is added only by `run-dsh.sh`, and only when it is already set. The wrapper does not copy it into a file.
+
+`/tmp` inside the jail is a fresh tmpfs. A write there does not land on the host. Landlock still runs inside this mount namespace; it is not the boundary that hides other bots. A same-user Landlock process without this jail can read other bots' files. Do not run `dsh` by hand.
+
+If `bwrap` is missing, not root-owned, or its startup probe fails, the wrapper exits 2 and does not run the command.
 
 ## Tested and untested
 
-Tested on linux x64, Node `v24.22.2`, package `0.2.2-rc.1`, with no provider key:
+Tested on linux x64 with bubblewrap 0.9.0, Node `v24.22.2`, and `dsh` `0.2.2-rc.1`, with no provider key:
 
-- package name, version, engine, maintainers, registry, and integrity
-- launcher `--help` and headless `--help`, including `--json`, `--session-id`, and `--permission-mode`
-- `cordis.patch.yml` accepted by `--dump-config`, including `tool-web: disabled`
-- a headless "say hi" with the key unset and the base URL forced to `http://127.0.0.1:9` exited 1 with `MISSING_CREDENTIAL` and no provider HTTP error
-- Landlock write, read, and network behavior described above
-- Node `v22.23.4` can print `--version` and headless `--help`, and is still below the package engine
+- package name, version, engine, registry, and integrity on the earlier install
+- launcher and headless help, composed config, and disabled `tool-web`
+- `deploy/test-isolation.sh`: outside reads and writes, host `/tmp`, `/etc/shadow`, symlinks, physical `..`, environment leakage, forced `workspace-write`, explicit provider-variable passthrough through `/bin/sh` only, public network still open, empty network namespace closed, symlink job rejected, missing `bwrap` fails closed, `dsh --version` inside the jail, and a no-key headless prompt stops with `MISSING_CREDENTIAL`
+- the existing Node `v22.23.4` was not replaced
 
 Not tested:
 
@@ -106,11 +122,12 @@ Not tested:
 - an arm64 install, beyond pinning the published checksums
 - `node-pty` shell sessions; its Linux prebuild has no `spawn-helper`, and its install script was not run
 - a full headless tool loop, because that needs a paid model call
-- installing over an existing `~/.dsh` used by something else; this bundle uses its own `DSH_HOME`
+- the parent's already-installed copy; this change does not edit `/home/box`
 
 ## Blockers before real work
 
-1. Approve the OpenCode Go subscription and the token prices above.
-2. Put `OPENCODE_API_KEY` in the environment through the existing secret flow.
-3. Expect the first real call to be a compatibility check. OpenCode still lists DeepSeek Harness as a client with incomplete session headers, and a keyless empty POST to the old and new Go URLs returned `MissingSessionID` before any model ran. No follow-up request was sent.
-4. Keep other bot credentials out of this Unix user's readable files. The worker can read them.
+1. Re-run `bash deploy/install-prefix.sh` from this commit and require `bash deploy/test-isolation.sh` to pass.
+2. Approve the OpenCode Go subscription and the token prices above.
+3. Put `OPENCODE_API_KEY` in the environment through the existing secret flow.
+4. Expect the first real call to be a compatibility check. OpenCode still lists DeepSeek Harness as a client with incomplete session headers. A keyless empty POST to the Go URLs returned `MissingSessionID` before any model ran. No follow-up request was sent.
+

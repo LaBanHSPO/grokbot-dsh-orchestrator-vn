@@ -13,7 +13,9 @@ export PATH="$PREFIX/node/bin:$PATH"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
+script_dir="$(cd "$(dirname "$0")" && pwd)"
 [ -x "$NODE" ] || fail "private node is missing"
+[ -x "$script_dir/isolate-run.sh" ] || fail "isolate-run.sh is missing beside verify.sh"
 [ "$("$NODE" -v)" = "v24.22.2" ] || fail "private node is not v24.22.2"
 [ -x "$DSH" ] || fail "dsh is missing"
 [ "$("$NODE" "$DSH" --version)" = "0.2.2-rc.1" ] || fail "dsh version is not 0.2.2-rc.1"

@@ -145,9 +145,11 @@ copy_config() {
 
 link_wrapper() {
   # Copy the wrapper so the installed tree does not depend on this repo path.
-  cp "$SOURCE_DIR/run-dsh.sh" "$BIN_DIR/run-dsh.sh"
-  cp "$SOURCE_DIR/verify.sh" "$BIN_DIR/verify.sh"
-  chmod 700 "$BIN_DIR/run-dsh.sh" "$BIN_DIR/verify.sh"
+  local script
+  for script in run-dsh.sh verify.sh isolate-run.sh test-isolation.sh; do
+    cp "$SOURCE_DIR/$script" "$BIN_DIR/$script"
+    chmod 700 "$BIN_DIR/$script"
+  done
 }
 
 install_node

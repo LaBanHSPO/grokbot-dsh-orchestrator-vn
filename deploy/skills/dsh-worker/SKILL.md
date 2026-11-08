@@ -9,7 +9,7 @@ description: >-
 
 # dsh-worker
 
-Dựa trên `grokbot-dsh-orchestrator-vn` của Diginno (CC BY 4.0). This text is a reviewed replacement for `skills/dsh-worker/SKILL.md` in commit `5b6c9392c86bbeeeb6263bc54375abf607c3ef60`. Save it only through the bot's own skill-authoring flow after a person reads it. Saving it does not change the bot's settings.
+Dựa trên `grokbot-dsh-orchestrator-vn` của Diginno (CC BY 4.0). This text replaces `skills/dsh-worker/SKILL.md` for review. Save it only through the bot's own skill-authoring flow after a person reads it. Saving it does not change the bot's settings.
 
 If any sentence here conflicts with the bot's built-in approval, draft, send, or delegation rules, follow the built-in rule and do not apply this skill.
 
@@ -36,22 +36,26 @@ The bot prepares the input files, checks the output, and decides what a person s
 
 ## How to run one job
 
-Use the pinned wrapper, not `npm i -g` and not `scripts/run-dsh.sh`:
+Use the pinned wrapper, not `npm i -g`, not `scripts/run-dsh.sh`, and not a bare `dsh` command:
 
 ```sh
 ~/.local/dsh-orchestrator/bin/run-dsh.sh <job-name> <prompt-file>
 ~/.local/dsh-orchestrator/bin/run-dsh.sh --pro <job-name> <prompt-file>
 ```
 
-`--pro` selects `deepseek-v4-pro` and costs more. The default model id is `deepseek-v4.1-flash`. The job name is one path segment. The wrapper creates the directory, forces `workspace-write`, disables telemetry, and refuses a git checkout.
+Do not run a live job until `test-isolation.sh` has passed on that box, a person has approved the provider spend, and `OPENCODE_API_KEY` is already in the environment. `--pro` selects `deepseek-v4-pro` and costs more. The default model id is `deepseek-v4.1-flash`. The job name is one path segment. The wrapper refuses a git checkout, a symlink job path, and a missing sandbox.
 
-Put this constraint in every prompt: work only on files already in the current directory; do not read secrets or other home directories; do not use the network; do not run git; if the data is missing, write "chưa rõ".
+Put this constraint in every prompt: work only on files already in the current directory; do not read secrets; do not open network connections of your own; do not run git; if the data is missing, write "chưa rõ".
 
-Read `run.jsonl` and `final.txt`. Exit 0 means the process finished. Also require a final event whose reason says the turn completed before trusting the draft. A `MISSING_CREDENTIAL` error means the approved key is not in the environment. Stop. Do not print the environment.
+Read `run.jsonl` and `final.txt` from the job directory after the wrapper returns. Exit 0 means the process finished. Also require a final event whose reason says the turn completed before trusting the draft. A `MISSING_CREDENTIAL` error means the approved key is not in the environment. Stop. Do not print the environment.
 
-## Sandbox facts to remember
+## Jail boundary
 
-On Linux, `workspace-write` uses Landlock when bubblewrap is absent. A tested run could write inside its workspace and anywhere under `/tmp`, and it could read another file owned by the same user outside the workspace. It could also reach the public network. A write to a home directory outside the workspace was denied. `read-only` denied the workspace write. Treat `/tmp` and the bot user's home as visible to the worker. Do not store other apps' credentials where this user can read them.
+The wrapper runs bubblewrap with every namespace unshared except the network. The network stays on the host because the provider API needs it. Child tools can also open network connections. That is not a closed network.
+
+The process can see only the one job directory, the private Node and dsh install, this prefix's dsh home, and the system libraries and CA files required to start Node. It cannot see the real home, other bots, the host `/tmp`, `/root`, `/opt`, or `/var`. Its environment is cleared. The provider variable is passed only by the wrapper, and only when a person has already set it. The wrapper does not write that value into a file.
+
+If bubblewrap is missing or its probe fails, the wrapper exits and does not run `dsh`. Landlock inside the jail is an extra restriction, not the boundary that hides other bots.
 
 ## Provider
 

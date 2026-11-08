@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Run one headless dsh job in a scratch directory outside /tmp and outside any git checkout.
+# Run one headless dsh job inside the fail-closed bubblewrap profile.
 # Does not accept extra dsh flags. Does not print OPENCODE_API_KEY.
+# Refuses to run unsandboxed. The provider call uses the host network.
 # MIT license. Copyright (c) 2026 Diginno. See the repository LICENSE.
 set -euo pipefail
 umask 077
 
 PREFIX="${DSH_ORCH_PREFIX:-$HOME/.local/dsh-orchestrator}"
 NODE="$PREFIX/node/bin/node"
-DSH="$PREFIX/app/node_modules/.bin/dsh"
 WORK_ROOT="$PREFIX/work"
+ISOLATE="$(cd "$(dirname "$0")" && pwd)/isolate-run.sh"
 export DSH_HOME="$PREFIX/home"
 export DSH_TELEMETRY_DISABLED=1
-export PATH="$PREFIX/node/bin:$PATH"
 
 if [ "${DSH_PERMISSION_MODE:-workspace-write}" != "workspace-write" ]; then
   echo "Refusing to run with DSH_PERMISSION_MODE=${DSH_PERMISSION_MODE}" >&2
@@ -46,7 +46,8 @@ if [ -z "${OPENCODE_API_KEY-}" ]; then
   echo "OPENCODE_API_KEY is absent. Not running. Do not paste the key into chat or into a file." >&2
   exit 2
 fi
-[ -x "$NODE" ] && [ -x "$DSH" ] || { echo "dsh is not installed under $PREFIX" >&2; exit 2; }
+[ -x "$NODE" ] || { echo "dsh is not installed under $PREFIX" >&2; exit 2; }
+[ -x "$ISOLATE" ] || { echo "isolate-run.sh is missing" >&2; exit 2; }
 
 mkdir -p "$WORK_ROOT"
 WORKDIR="$WORK_ROOT/$NAME"
@@ -63,8 +64,8 @@ done
 {
   echo "Safety rules for this run:"
   echo "- Work only on the files already in this directory."
+  echo "- The harness process may call its configured provider. Do not open any other network connection and do not run curl, wget, ssh, git, or npm."
   echo "- Do not read or write files outside this directory."
-  echo "- Do not use the network and do not run curl, wget, ssh, git, or npm."
   echo "- Do not print environment variables, tokens, or keys."
   echo "- If the task needs a secret, a browser, an account, or a repository, stop and say so."
   echo
@@ -73,14 +74,21 @@ done
 
 PATCH_ARGS=()
 if [ "$PRO" -eq 1 ]; then
-  PATCH_ARGS=(--patch "$DSH_HOME/patches/pro.patch.yml")
+  PATCH_ARGS=(--patch /opt/runtime/dsh-home/patches/pro.patch.yml)
 fi
 
-cd "$WORKDIR"
 set +e
-"$NODE" "$DSH" --profile headless "${PATCH_ARGS[@]}" --permission-mode workspace-write --json - < "$WORKDIR/prompt.txt" > run.jsonl 2> run.err
+"$ISOLATE" --job "$NAME" --pass-provider-key -- \
+  /opt/runtime/node/bin/node \
+  /opt/runtime/app/node_modules/@deepseek-ai/dsh/lib/bin.js \
+  --profile headless \
+  "${PATCH_ARGS[@]}" \
+  --permission-mode workspace-write \
+  --json - \
+  < "$WORKDIR/prompt.txt" > "$WORKDIR/run.jsonl" 2> "$WORKDIR/run.err"
 RC=$?
 set -e
+cd "$WORKDIR"
 
 "$NODE" -e '
 const fs = require("fs");

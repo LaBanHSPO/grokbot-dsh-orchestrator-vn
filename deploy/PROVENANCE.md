@@ -48,3 +48,7 @@ The original GitHub path named in the README is `diginno-net`. This bundle was t
 Current upstream defaults, when that overlay is absent, are `model: deepseek-flash` and base URL `https://api.deepseek.com/anthropic`. The overlay replaces that catalog. `tool-web` is additionally set to `disabled: true` in this bundle; the dump kept the row and marked it disabled.
 
 The Messages adapter posts to `{baseURL}/messages` with `x-api-key` and `anthropic-version: 2023-06-01`. It also sends `x-deepseek-harness-session-id` when it has a session id.
+
+## Worker jail
+
+`isolate-run.sh` is the only supported way to start a job. It uses bubblewrap `--unshare-all --share-net`: every namespace except the network is new. The network stays shared because the provider API needs it. The mount set is the job directory, the private runtime, the prefix dsh home, and the system libraries and certificate files needed to start Node. The process environment is cleared. `OPENCODE_API_KEY` is passed only by `run-dsh.sh` when it is already set, and it is not copied into a file. If bubblewrap is missing or the startup probe fails, the command does not run.
