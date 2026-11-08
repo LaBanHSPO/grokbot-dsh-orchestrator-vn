@@ -6,6 +6,9 @@ description: >-
   batch song song. Dùng khi việc không cần browser, không gửi/ghi lên tài khoản
   thật.
 ---
+
+> **Không lưu skill này vào bot.** Nó bảo bot tự gửi/ghi tài khoản, tự cài `dsh` toàn máy, và né chặn mạng bằng `curl`. Bản đã chỉnh cho đúng quy tắc duyệt gửi, ủy quyền cloud agent, và không xin credential là [`deploy/skills/dsh-worker/SKILL.md`](../../deploy/skills/dsh-worker/SKILL.md). Người vận hành tự đọc và lưu bằng luồng tạo skill của bot.
+
 # dsh-worker: Grok Bot điều phối, dsh thực thi
 
 Grok Bot nhận việc, chia nhỏ, giao từng phần cho `dsh` (DeepSeek Harness) chạy headless trên box, rồi tự kiểm tra kết quả trước khi giao cho người dùng.

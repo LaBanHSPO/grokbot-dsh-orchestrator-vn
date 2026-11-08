@@ -55,6 +55,8 @@ Chạy trên box của Grok Bot, model `deepseek-v4.1-flash` qua OpenCode Go, ng
 
 ## Bắt đầu nhanh
 
+> **Đừng chạy khối lệnh bên dưới trên box đang dùng chung.** Node 22 không còn đúng với bản `dsh` hiện tại, và `npm i -g` không ghim phiên bản. Dùng [deploy/INSTALL.md](deploy/INSTALL.md). Skill gốc trong `skills/dsh-worker/` chưa tương thích với quy tắc của Grok Bot; bản đã sửa để đọc trước khi lưu là [deploy/skills/dsh-worker/SKILL.md](deploy/skills/dsh-worker/SKILL.md).
+
 Nói với Grok Bot (hoặc làm tay trên box):
 
 ```bash
